@@ -41,7 +41,9 @@ function App() {
         name: '',
         email: '',
         photo:'',
-        password:''    
+        password:'',
+        error:'',
+        isValid: false     
       }
       setUser(signedOutUser);
     })
@@ -50,17 +52,51 @@ function App() {
     })
  } 
 
+ const  is_valid_email = email => /^.+@.+\..+$/.test(email);
+
  const handelChange = event =>{
    const newUserInfo = {
       ...user
    };
+   let isValid = true;
+   if (event.target.name === "email")
+  {
+     isValid = is_valid_email(event.target.value);
+    // console.log(is_valid_email(event.target.value));
+  }
+  
+  if(event.target.name === "password")
+  {
+    const passLength = event.target.value;
+     isValid = passLength.length>8;
+  }
    newUserInfo[event.target.name]= event.target.value;
+   newUserInfo.isValid = isValid;
    setUser(newUserInfo); 
-   console.log(newUserInfo);
+  //  console.log(newUserInfo);
  }
 
- const createAccount = () =>{
-
+  
+ const createAccount = (event) =>{ 
+   if(user.isValid){
+     firebase.auth().createUserWithEmailAndPassword(user.email,user.password)
+     .then(res=> {
+       console.log(res);
+       const createdUser = {...user};
+       createdUser.isSignedIn = true;
+       createdUser.error = '';
+       setUser(createdUser);
+     })
+     .catch(err => {
+       console.log(err.message); 
+       const createdUser = {...user};
+       createdUser.isSignedIn = false;
+       createdUser.error = err.message;
+       setUser(createdUser);
+     })
+   }
+   event.preventDefault(); //Not to reload;
+   event.target.reset();
  }
 
   return (
@@ -77,9 +113,15 @@ function App() {
         </div>
       }
       <h1>Auth</h1>
-      <input type="text" onBlur={handelChange} name="email" placeholder="email"/> <br/>
-      <input type="text" onBlur={handelChange} name="password" placeholder="password"/> <br/>
-      <button onClick={createAccount}>create account</button>
+      <form onSubmit={createAccount}>
+      <input type="text" onBlur={handelChange} name="name" placeholder="name" required/> <br/>
+      <input type="text" onBlur={handelChange} name="email" placeholder="email" required/> <br/>
+      <input type="text" onBlur={handelChange} name="password" placeholder="password" required/> <br/>
+      <input type="submit" value="submit"/>
+      </form>
+      {
+        user.error && <p>{user.error}</p>
+      }
     </div>
   );
 }
